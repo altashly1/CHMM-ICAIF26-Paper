@@ -1,374 +1,282 @@
 # ICAIF '26 Paper Readiness Review
 
-**Paper:** *Heavy-Tail Hidden Markov Generators for Daily Equity Returns: Stylized Facts and Regime-Conditional Value-at-Risk*  
+**Paper:** *Heavy-Tail Hidden Markov Generators for Daily Equity Returns: Stylized Facts and Filter-Conditional Value-at-Risk*
 **Review date:** July 15, 2026  
 **Scope:** Technical accuracy, narrative flow, correctness, conference fit, and rendered-submission quality  
 **Compared against:**
 
-- Extended paper: `/Users/abdulrahmanalswaidan/Desktop/Project-Repos/Thesis/CHMM-Paper-Repository`
-- Model and result artifacts: `/Users/abdulrahmanalswaidan/Desktop/Project-Repos/Thesis/CHMM-Model-Repository`
-- Official ICAIF '26 call for papers: <https://icaif2026.org/call-for-papers.html>
+- extended manuscript: `/Users/abdulrahmanalswaidan/Desktop/Project-Repos/Thesis/CHMM-Paper-Repository`;
+- implementation and stored results: `/Users/abdulrahmanalswaidan/Desktop/Project-Repos/Thesis/CHMM-Model-Repository`;
+- official ICAIF '26 call: <https://icaif2026.org/call-for-papers.html>.
 
 ## Executive verdict
 
-The paper is **not submission-ready yet**, but its central idea is viable for ICAIF '26 after a focused major revision.
+The paper is a **strong topical fit for ICAIF '26 and close to submission-ready**, but I would not submit this exact PDF. The core numerical claims checked in the source artifacts are accurate, the principal model configurations are now disclosed, and the paper is much more technically candid than the previous version. The remaining work is a focused accuracy and presentation pass rather than a new experimental program.
 
-Conference fit is excellent. ICAIF '26 explicitly solicits work on synthetic data generation, financial-model validation, risk management, and financial time-series analysis. The current manuscript also satisfies the principal mechanical constraints: it uses anonymous ACM `sigconf`, compiles to seven pages, has no undefined references or citations, and passes the repository's anonymization checks.
+The main blockers are:
 
-The stored SPY generator, VaR, and walk-forward numbers mostly trace correctly to the source artifacts. The principal problem is therefore not numerical transcription. It is that the narrative combines results from several materially different CHMM configurations into what reads as a single 12-parameter model. This affects the abstract, novelty claim, cross-ticker evidence, and interpretation of the VaR results.
+1. a direct contradiction in the abstract between “at three states” and a statistic evaluated at `K = 18`;
+2. a few remaining family-level statements that are not true of every estimator/configuration;
+3. an ACF identity whose domain must be stated as lag `tau >= 1`;
+4. an unsupported “statistically indistinguishable” CRPS claim in the self-contained conference version;
+5. ACM template warnings caused by suppressing the mandatory reference-format block and omitting figure descriptions.
 
 Indicative assessment:
 
 | Dimension | Assessment |
 |---|---:|
 | Conference fit | 9/10 |
-| Technical accuracy | 5/10 |
-| Narrative and coherence | 6/10 |
-| Current submission readiness | 4/10 |
+| Technical accuracy | 7.5/10 |
+| Narrative and coherence | 7/10 |
+| Correctness and reproducibility | 8/10 |
+| Current submission readiness | 7/10 |
 
-## Submission-format audit
+## Conference fit and domain
 
-The official ICAIF '26 requirements are correctly captured in the repository:
+### Fit
 
-- Submission deadline: August 2, 2026, AoE.
-- Maximum eight pages total, including figures and references.
-- ACM two-column `sigconf` format with the `anonymous` option.
-- Double-blind review.
-- No supplementary material or appendices.
-- Self-contained submission.
+ICAIF '26 explicitly lists the following relevant areas:
 
-The current PDF is seven pages and compiles successfully. The reference and anonymization checks pass. Five very small overfull boxes remain, all below the repository's 5-point failure threshold.
+- **Generative AI, simulation, and synthetic data generation**;
+- **AI-driven risk management**;
+- **validation and calibration of financial models**;
+- **risk modeling and risk management**;
+- **forecasting of financial scenarios**;
+- **financial time-series analysis and factor models**.
 
-The visual rendering is stable, with no clipping, overlap, missing glyphs, or broken references. Figure 1 is too small for comfortable reading at normal page scale, however, and most of page 7 is blank after the references. The free space should be used to display evidence that is currently only asserted in prose.
+The paper therefore fits the venue directly. Its best positioning is not “a new HMM algorithm” and not generic econometrics. It is an **interpretable probabilistic generator for financial scenarios, with model validation and a risk-management head**.
 
-## Critical technical findings
+### Recommended domain selection
 
-### 1. Headline claims are assembled from different model configurations
+If CMT asks for one primary topic, choose:
 
-The abstract states that a model with 12 free parameters reproduces the stylized facts, narrows the Gaussian kurtosis gap without a tuning parameter, supports the VaR result, generalizes across the panel, and benefits from periodic refitting. These results do not come from one specification:
+> **Methodology: Generative AI, simulation, and synthetic data generation**
 
-- The preferred SPY generator in Table 1 is the **shared-`nu` Student-t CHMM**, with six transition parameters, six location/scale parameters, and one shared shape parameter: **13 free parameters**, not 12.
-- The VaR table uses **Gaussian CHMM-N**.
-- The six-fold generator walk-forward uses **Gaussian CHMM-N**.
-- The 30-ticker static and quarterly-refit panels use the **penalized per-state-`nu` Student-t model with `lambda = 20`**.
-- The cross-ticker spectral diagnostic uses a separate Gaussian configuration at a different state count.
+Recommended secondary topics:
 
-The penalized cross-ticker configuration is particularly important because the omitted kurtosis results are poor. The stored `sector_panel_summary_k3.txt` reports a median kurtosis residual of `+7.18`, with several simulated excess-kurtosis values between approximately 25 and 106. The conference paper reports only its KS summary.
+1. **Validation and calibration of financial models**;
+2. **AI-driven risk management**;
+3. **Robustness and uncertainty quantification**.
 
-This produces a configuration-switching problem: the marginal result comes from one model, VaR from another, walk-forward results from another evaluation, and cross-ticker/refit claims from a model that the SPY analysis classifies as a sensitivity specification because of its shrinkage artifact.
+Recommended application area:
 
-**Required action:** Select one canonical `K = 3` specification and evaluate it consistently across SPY generation, VaR, the cross-ticker panel, periodic refitting, and walk-forward folds. If rerunning is infeasible, identify the configuration explicitly in every result and rewrite the abstract as a statement about the CHMM family rather than one model.
+> **Risk modeling and risk management**
 
-### 2. The abstract's HSMM statement is false
+with **financial time-series analysis** and **forecasting of financial scenarios** as secondary applications.
 
-The abstract says that the bootstrap and maximum-likelihood HSMM “carry no latent state for a regime-conditional forecast.” An HSMM necessarily contains latent states.
+The technical subdomain is:
 
-The intended claim appears to be that an analogous HSMM risk head was not implemented or evaluated. The results section already uses this more defensible wording.
+> **Probabilistic machine learning for finance — latent-variable, regime-switching, and synthetic financial time-series models.**
 
-**Required action:** Replace the abstract sentence with wording such as:
+Do not position it primarily as asset pricing, trading, deep learning, or NLP. The existing CCS concepts—latent-variable models, economics, and time-series analysis—are appropriate.
 
-> The bootstrap and HSMM match or exceed the CHMM on single-window marginal fit; an analogous HSMM risk head is not evaluated here.
+### Acceptance-risk framing
 
-### 3. “Regime-conditional VaR” is not the quantity being calculated
+Topical fit is not the main risk. The likely reviewer concern is novelty: the paper openly uses an established model class and standard forward–backward machinery. Its publishable contribution is the combination of:
 
-The code computes the quantile of a one-step predictive mixture whose weights are filtered/predicted regime probabilities. It conditions on the observed return history while integrating over the latent state. It is not the state-specific quantity
-
-\[
-\operatorname{VaR}_{\alpha}(G_{t+1}\mid S_{t+1}=k).
-\]
-
-The current model section instead says that “conditional” means conditioning on the latent regime. That is inconsistent with the mixture definition and implementation.
-
-The forecasting timing itself appears correct: each threshold uses the predicted state distribution before observing the corresponding held-out return, and the filter is initialized from the in-sample history without future leakage.
-
-**Required action:** Rename the head to one of:
-
+- a two-channel reinterpretation of the low-state Gaussian-HMM limitation;
+- an empirical spectral effective-rank diagnosis;
+- a transparent cross-emission comparison;
+- a small, inspectable financial generator;
 - filter-conditional VaR;
-- regime-adaptive VaR;
-- regime-mixture predictive VaR.
+- walk-forward and cross-ticker validation with explicit failure cases.
 
-Then define it explicitly as the quantile of
+Keep that empirical-diagnostic contribution central. Avoid implying that CHMMs, Baum–Welch, or the spectral identity are themselves new.
 
-\[
-p(G_{t+1}\mid G_{1:t})
-= \sum_k p(S_{t+1}=k\mid G_{1:t}) f_k(G_{t+1}).
-\]
+## What is now technically solid
 
-### 4. The “maximum-likelihood HSMM” duration update is not an exact MLE
+The following corrections and disclosures are strong:
 
-The main HSMM benchmark uses a truncated discrete Pareto duration distribution,
+- The risk head is correctly named **filter-conditional VaR** and is defined as the quantile of the one-step predictive state mixture, not as state-conditioned VaR.
+- The forecast timing is consistent with a one-step-ahead filter and no future-return leakage was found in the described procedure.
+- The HSMM row is now explicitly described as approximate because its truncated-duration normalizer is ignored in the shape update.
+- The shared-`nu` Student-t objective and its parameter-counting convention are described.
+- The dominant-mode share is correctly defined using absolute modal contributions, including the sign caveat.
+- The panel section now identifies the penalized per-state Student-t configuration and discloses its poor kurtosis behavior instead of reporting only KS.
+- The QuantGAN is correctly labeled a smaller in-house negative control rather than a faithful reproduction of the published system.
+- KS pass rates are described as descriptive rather than calibrated tests under serial dependence, and Wasserstein-1 is supplied as a continuous-distance check.
+- VaR non-rejection is not presented as proof of correct coverage, and the 1% test is correctly described as power-limited.
+- Table 3 makes the configuration switching explicit and adds the state-selection, rolling-origin, walk-forward, panel, and spectral evidence needed in a no-supplement conference submission.
 
-\[
-p(d;\alpha) \propto d^{-(\alpha+1)}, \qquad d\in\{1,\ldots,D_{\max}\}.
-\]
+The checked numerical values agree with the stored artifacts, including:
 
-Its implementation updates `alpha` using `1 / E[log d]`. This is the familiar continuous, untruncated Pareto expression, but it is not the exact maximum-likelihood update for a normalized truncated discrete Pareto because the normalizing constant depends on `alpha`.
+- BIC/CAIC for `K = 3, 6, 18`;
+- four-fold and six-fold held-out log likelihoods;
+- SPY dominant-mode shares `1.000`, `0.968`, and `0.936` at `K = 2, 3, 18`;
+- cross-ticker median/minimum shares `0.756/0.326`;
+- the displayed Gaussian state locations and scales;
+- the main generator, cross-ticker, refit, and VaR table entries.
 
-Consequently, the duration block is approximate and the fitted model should not currently be described as jointly maximum-likelihood.
+## Required technical corrections
 
-**Required action:** Either:
+### 1. Correct the abstract's state-count contradiction
 
-1. numerically maximize the posterior-weighted duration objective including the `alpha`-dependent normalizer; or
-2. relabel the row as an approximate or moment-updated explicit-duration HSMM.
+The abstract currently says:
 
-The former is preferable because the HSMM comparison is central to the paper's historical framing.
+> “dominated by one persistent mode at three states (93.6% ... at the evaluated K = 18)”
 
-### 5. The spectral evidence is described more strongly than it supports
+The source results are:
 
-The reported dominant-mode share is calculated from absolute modal contributions, `|a_k lambda_k|`. Thus “93.6% of the lag-1 ACF” should be “93.6% of the total absolute lag-1 modal contribution.” With signed or complex contributions, the two statements are not generally equivalent.
+- `96.8%` at `K = 3`;
+- `93.6%` at `K = 18`.
 
-The cross-ticker diagnostic is also evaluated at `K = 18`. It does not establish the abstract's panel-wide statement that the rank bound is inactive “once a few states are used.” The available evidence supports:
+Use one of these constructions:
 
-- nonbinding behavior for SPY at `K = 3`;
-- dominant-mode behavior across the panel at the evaluated `K = 18`;
-- a median panel share of 0.76 but a minimum of 0.326.
+> On SPY, one persistent mode carries 96.8% of the total absolute lag-1 modal contribution at the selected three-state fit.
 
-The median share is suggestive, but there is no predeclared threshold under which 0.76 proves that the remaining modes are immaterial. Nor is the cross-ticker ACF-MAE shown to be flat from `K = 3` to `K = 18`.
+or:
 
-**Required action:** Narrow the panel claim to the actual evaluated state count or run the cross-ticker diagnostic at `K = 3`. Define the dominant share precisely as a share of total absolute modal contribution.
+> On SPY, one persistent mode carries 96.8% at `K = 3` and 93.6% at the diagnostic `K = 18`.
 
-### 6. The preferred shared-`nu` model is not described in the estimation section
+This is the most visible factual error because it appears in the abstract.
 
-The model and ECM section describes per-state degrees of freedom `nu_k` and the penalized sensitivity specification. The headline Table 1 row instead uses a single `nu` shared across all states, fitted through an aggregate posterior-weighted objective.
+### 2. State that the spectral ACF identity applies at positive lags
 
-The table caption identifies the constraint, but the estimation method and parameter count are missing from the methods section.
+The identity
 
-**Required action:** Add the shared-shape objective,
+`E[|G_t||G_{t+tau}|] = m' diag(pi) T^tau m`
 
-\[
-Q(\nu)=\sum_{t,k}\gamma_t(k)\log t_{\nu}(O_t;\mu_k,\sigma_k),
-\]
+uses conditional independence of separate observations given their states. It is valid for `tau >= 1`. At `tau = 0`, the same observation appears twice and the conditional second moment is required; substituting `m_k^2` is generally wrong.
 
-state the bounded optimization used, and give the correct 13-parameter count at `K = 3`.
+Add `for tau >= 1` to the sentence introducing the identity and to the scope of Equation (6). The empirical diagnostic already uses positive lags, so no results need to be rerun.
 
-### 7. Gaussian states do not have fitted shape parameters
+### 3. Correct the parameter-budget language
 
-The introduction and conclusion connect the 12-parameter CHMM-N to readable per-state “location, scale, and shape.” CHMM-N has only location and scale parameters. The shared-`nu` Student-t model has one global shape, not a separately readable shape for every state.
+The introduction says the four variants use “12 to 15 free parameters at three states depending on emission family.” Under the paper's own convention, the counts are:
 
-**Required action:** Match the interpretability claim to the actual variant:
+| Variant | `K = 3` count |
+|---|---:|
+| CHMM-N, fixed initial distribution | 12 |
+| CHMM-L, updated initial distribution | 14 |
+| shared-`nu` CHMM-t, updated initial distribution | 15 |
+| per-state-`nu` CHMM-t, updated initial distribution | 17 |
+| CHMM-GED, updated initial distribution | 17 |
 
-- CHMM-N/L: state-specific location and scale;
-- CHMM-GED/per-state Student-t: state-specific location, scale, and shape;
-- shared-`nu` Student-t: state-specific location/scale and one global tail-shape parameter.
+Either change the family-wide range to **12–17**, or say that the two headline configurations use **12 and 15** parameters.
 
-### 8. Table 1 mixes IS/OoS columns with unlabeled IS-only ACF values
+Relatedly, “the four variants share everything except the emission family” is not literally true because CHMM-N fixes the initial distribution while the other fitters update it. Use:
 
-The KS and kurtosis columns are explicitly divided into IS and OoS. The two ACF columns contain only in-sample values, but this is not stated clearly. For example, CHMM-N's displayed absolute-return ACF-MAE is `0.0462` IS, while the stored OoS value is `0.0544`.
+> The variants share the state-space structure and forward–backward recursions but differ in emission family and the treatment of the initial distribution.
 
-The GARCH-t and MS-GARCH rows also leave OoS kurtosis blank without explaining why.
+### 4. Narrow the CRPS inference
 
-**Required action:** Mark the ACF columns as IS or provide both IS/OoS values. Explain or populate missing baseline entries.
+The results say that the four `K = 3` CHMM variants are “statistically indistinguishable” from their mean CRPS values alone. The conference paper does not display a test, and the stored Diebold–Mariano robustness artifact does not clearly establish the claim for the new shared-`nu`, `K = 3` row.
 
-### 9. The Hill-estimator interpretation overreaches
+The safe correction is:
 
-The manuscript correctly acknowledges that a top-5% Hill estimate for Gaussian, Laplace, and GED mixtures is a threshold-local shape diagnostic rather than an asymptotic tail index. It then says that the simulated tail is “matched” and is only “slightly thinner in the far tail.” Those conclusions do not follow from the stated diagnostic.
+> The four CHMM variants have numerically similar mean OoS CRPS values (1.0393–1.0432).
 
-At the OoS length, the top 5% contains only about 29 observations. Overlap between an across-path interval and an observed bootstrap interval is also not a formal equality test.
+If “statistically indistinguishable” is retained, run/report the exact pairwise test for the four displayed configurations, state the loss-differential and HAC specification, cite Diebold–Mariano, and account for multiplicity. Otherwise remove the unused `diebold1995comparing` bibliography entry.
 
-**Required action:** State only that the finite-threshold estimates overlap the observed uncertainty range. Do not infer asymptotic or far-tail agreement.
+### 5. Make the conclusion variant-accurate
 
-### 10. The CRPS citation is incorrect
+The first conclusion sentence describes the family as a continuous-emission HMM “trained by Baum–Welch.” Baum–Welch is exact for the Gaussian row, while the Student-t and GED fits use generalized/hybrid block updates whose monotone ascent is not guaranteed. Use:
 
-Diebold and Mariano (1995), *Comparing Predictive Accuracy*, is not the standard reference for CRPS or proper scoring rules.
+> The CHMM family, fitted with common forward–backward recursions and family-specific M-steps, captures the three symmetric diagnostics at `K = 3`...
 
-**Required action:** Cite an appropriate CRPS/proper-scoring source, such as Gneiting and Raftery (2007). Retain Diebold-Mariano only if an actual predictive-accuracy comparison test is reported.
+The conclusion also says the spectral argument “motivates the state-count choice.” Operationally, BIC/CAIC and rolling-origin validation choose `K = 3`; the spectral argument diagnoses why additional ACF modes are unnecessary on this instance. State that distinction.
 
-## Evaluation-design concerns
+Finally, replace “the fitted states read directly as economic regimes” with **“return/volatility regimes”** or **“economically interpretable regimes.”** The location and scale values support calm/intermediate/stress labels, but no external economic-state validation is performed.
 
-### KS pass rate
+### 6. Avoid overclaiming exact reproduction of heavy tails
 
-The paper appropriately acknowledges that the asymptotic two-sample KS null assumes independent observations and is not calibrated for serially dependent return paths. Nevertheless, it continues to use the pass rate as the main ranking, defines cross-ticker “failures” from it, and uses “best” language.
+CHMM-N produces excess kurtosis `3.83/3.62` against observed `7.68/5.29`. Its mixture captures a heavy-tailed sample shape and performs well on KS/Hill diagnostics, but a finite Gaussian mixture is asymptotically light-tailed and leaves a substantial point-estimate kurtosis gap.
 
-The extended work contains block-bootstrap recalibration and continuous-distance robustness results, but ICAIF accepts no supplement and the conference manuscript does not display them.
+“Reproduces the three stylized facts” is defensible only as a qualitative diagnostic statement. More precise wording is:
 
-**Recommendation:** Show at least one continuous distributional distance in Table 1 or replace KS pass rate with the mean KS statistic. If retaining the pass rate, include the block-aware OoS recalibration for the canonical model and key baselines.
+> captures the three symmetric stylized-fact diagnostics, while leaving an excess-kurtosis gap that heavy-tailed emissions narrow.
 
-### VaR non-rejection
+This phrasing is also consistent with the limitations section.
 
-The manuscript is commendably careful not to equate non-rejection with proof. The `alpha = 0.01` results remain extremely low-powered at 573 observations, with only 5.7 expected breaches.
+### 7. Keep the HSMM label explicitly approximate
 
-The phrase “higher-power DQ test” is too broad. DQ can test richer dynamic misspecification, but it is not uniformly more powerful, especially in sparse-tail samples.
+The benchmark is now candidly described, which resolves the earlier accuracy problem. Still, “approximate-ML” can be read as a nearly exact likelihood fit. A clearer label is:
 
-**Recommendation:** Say “the richer DQ specification” rather than “higher-power DQ test,” unless direct power evidence for the relevant alternatives is shown.
+> HSMM-N (moment-updated duration)
 
-### Cross-ticker reporting
+or:
 
-The paper reports cross-ticker KS but omits the corresponding kurtosis failures. This is selective relative to its own three-axis definition of generator quality. It also does not identify the 30 tickers, family, penalty, training-window behavior, or refit training length in the condensed manuscript.
+> HSMM-N (approximate-EM)
 
-**Recommendation:** Report the panel's marginal and temporal metrics together for the canonical configuration. Include the ticker universe and the 1,260-day rolling window/63-day cadence.
+No new experiment is required unless the paper wants to call it a maximum-likelihood HSMM; that would require optimizing the normalized truncated discrete-Pareto duration objective.
 
-### Benchmark fairness
+## Narrative and flow
 
-The QuantGAN row is explicitly described as a negative control, which is good. The conference manuscript should still disclose that it is an in-house, materially smaller approximation rather than a faithful reproduction of the reference QuantGAN architecture. It should not be used to support a broad claim about deep generative models.
+### Strengths
 
-The HSMM row should identify `K = 3`, its truncated-Pareto duration law, `D_max`, and the estimation caveat. Otherwise the reader cannot assess why an explicit-duration model sits at the i.i.d. ACF-MAE floor.
+The paper now has a coherent main argument:
 
-## Self-contained evidence problem
+1. separate the low-state Gaussian limitation into temporal and marginal channels;
+2. show empirically that the fitted SPY ACF is effectively one-mode at small `K`;
+3. compare emission families as the main remaining lever;
+4. validate the family across rolling windows and tickers;
+5. exercise the Gaussian member's filter-conditional risk head;
+6. state where static fitting fails.
 
-ICAIF '26 prohibits supplementary material and requires self-contained papers. The manuscript currently asserts several results that are not supported by a displayed table or figure:
+Table 3 is especially valuable because it prevents the reader from mistaking results from Gaussian, shared-`nu`, and penalized per-state Student-t configurations as one model.
 
-- BIC/CAIC and rolling-origin state selection;
-- four-fold and six-fold likelihood comparisons;
-- spectral effective-rank results;
-- cross-ticker distribution and ANOVA;
-- quarterly-refit improvement;
-- six-fold generator walk-forward;
-- robustness across KS, Anderson-Darling, Hellinger, and Wasserstein-1;
-- CRPS indistinguishability;
-- the full four-family VaR/DQ panel.
+### Remaining flow problems
 
-References to “extended experiments” cannot supply evidence during review because the extended arXiv paper is deliberately uncited and no supplement is allowed.
+The abstract is approximately **312 words** and tries to carry almost every caveat and result. It is accurate in intent but difficult to parse. Target roughly **180–220 words** with this order:
 
-The rendered PDF has enough unused space to address this. Most of page 7 is blank, giving approximately one page for an additional compact figure or table.
+1. problem and two-channel hypothesis;
+2. method and spectral diagnostic;
+3. one SPY result;
+4. generator/risk result with exact configurations;
+5. principal limitation.
 
-**Recommended use of the eighth page:**
+The introduction's first and third paragraphs are similarly dense. The narrative will improve if baseline qualifications are left in Related Work and the introduction preserves only the problem, gap, contribution, and headline finding.
 
-1. A compact canonical-model validation table containing:
-   - SPY main-window results;
-   - median and IQR across six walk-forward folds;
-   - cross-ticker median/IQR and failure count;
-   - static versus quarterly-refit comparison.
-2. A small state-selection/effective-rank panel containing:
-   - BIC/CAIC winner;
-   - held-out log-likelihood for `K = 3, 6, 18`;
-   - dominant modal share at `K = 2, 3, 18`.
+The results section is broad but now manageable. If further compression is needed, the Hill subsection is the least central to the conference story. The main acceptance case rests on the spectral diagnosis, generator comparison, validation, and VaR.
 
-If only one can be added, prioritize the canonical-model validation table.
+## Mechanical and rendered-PDF audit
 
-## Narrative assessment
+Current checks:
 
-### What works
+- PDF builds successfully;
+- exactly **8 pages**, including references;
+- ACM `sigconf` with `anonymous` is used;
+- anonymization scan is clean;
+- no undefined citations or references;
+- four minor overfull boxes, maximum `4.37 pt`;
+- one unused bibliography entry: `diebold1995comparing`;
+- no clipping, overlap, missing glyphs, or broken figure rendering was found.
 
-The strongest intellectual story is clear and relevant:
+The full-width Figure 1 is now legible. Page 8 is only partly occupied by references, leaving layout margin for the small compliance additions below.
 
-> The low-state Gaussian HMM limitation contains separate temporal and marginal channels. On the studied SPY data, the temporal rank bound is already effectively nonbinding at a small state count, while marginal/emission flexibility explains more of the residual fit gap.
+### ACM warnings to resolve
 
-This is a useful empirical reinterpretation of the Rydén/Bulla line and a credible ICAIF contribution when coupled with an inspectable generator and a properly defined risk head.
+The class emits:
 
-The manuscript is also unusually candid about:
+1. **“ACM reference format is mandatory”** because `printacmref=false` is set;
+2. **possible image without description** because Figure 1 has no `\Description{...}`.
 
-- the CHMM not being a new model class;
-- bootstrap/HSMM advantages on marginal fit;
-- invalid iid calibration of KS under dependence;
-- power limits of 1% VaR backtests;
-- regime-introduction failures;
-- the lack of a privacy guarantee;
-- finite-state inability to generate genuine power-law memory.
+ICAIF requires the latest ACM template. Set `printacmref=true` unless the conference chairs explicitly instruct otherwise, and add a concise `\Description{...}` after the figure caption. The current half-empty final page should accommodate the ACM reference block without exceeding eight pages, but recompile to confirm.
 
-These caveats increase credibility.
+## Recommended revision order
 
-### What weakens the flow
+### Before submission
 
-The seven-page version tries to carry too many threads:
+1. Fix `96.8% at K = 3` versus `93.6% at K = 18` in the abstract.
+2. Add `tau >= 1` to the ACF identity.
+3. Change the family-wide parameter range from `12–15` to `12–17`, or restrict it to the two headline variants.
+4. Replace the CRPS significance claim with numerical-closeness language, or report the exact test for the displayed rows.
+5. Rewrite the conclusion's Baum–Welch, regime-interpretability, and state-selection sentences.
+6. Restore the ACM reference-format block and add figure alternative text.
+7. Remove the unused Diebold–Mariano entry if it remains uncited.
 
-1. spectral diagnosis;
-2. four emission families;
-3. state-count selection;
-4. generator benchmarks;
-5. Hill tail index;
-6. gain/loss asymmetry;
-7. cross-ticker generalization;
-8. periodic refitting;
-9. multi-asset copula companion work;
-10. VaR validation.
+### Strong polish
 
-This breadth causes the results section to read as a compressed inventory rather than a single escalating argument. Important claims receive one sentence, while the copula and tail-asymmetry material introduce additional unvalidated directions.
+8. Cut the abstract to 180–220 words.
+9. Use “captures the three diagnostics” instead of implying exact heavy-tail reproduction.
+10. Label the cross-ticker spectral row explicitly as CHMM-N at `K = 18`.
+11. If retaining the QuantGAN size comparison, report the implemented architecture's exact parameter count rather than only “orders of magnitude.”
+12. Run `make clean && make && make check` and visually inspect all eight final pages.
 
-**Recommended story order:**
+## Bottom line
 
-1. Establish the two-channel question.
-2. Define the canonical CHMM and estimation.
-3. Use the spectral diagnostic to justify why additional states are not the main lever.
-4. Compare emission families and select one canonical configuration.
-5. Validate that same configuration on walk-forward and cross-ticker data.
-6. Exercise its filter-conditional VaR head.
-7. Conclude with limitations and stress-regime failure.
+**Submit to ICAIF '26 after this focused correction pass.** The paper's topic is squarely in scope, its empirical artifacts largely support the displayed values, and the current configuration map resolves the most serious coherence problem from the earlier draft. The remaining issues are reviewer-visible but readily correctable without rerunning the main study.
 
-Remove the copula companion paragraph. Compress or remove the gain/loss-asymmetry sentence. Retain the Hill analysis only if it can be stated without asymptotic implications.
+The most accurate one-line positioning is:
 
-## Novelty positioning
-
-The current paper openly states that the CHMM is established. This is appropriate but leaves the novelty claim dependent on the combination of:
-
-- a controlled cross-emission comparison;
-- quantile-based nondegenerate initialization;
-- the empirical spectral effective-rank diagnosis;
-- a small, inspectable generator;
-- a filter-driven risk head;
-- multi-window and cross-ticker validation.
-
-That contribution is plausible for an application-oriented ICAIF paper, but reviewers may still view it as incremental if the evidence is spread across different configurations.
-
-The paper should avoid claiming a new “unified EM” algorithm when Student-t/GED estimation is a hybrid generalized block-coordinate procedure without guaranteed monotone ascent. “Unified forward-backward framework with family-specific generalized-ECM updates” is more accurate.
-
-The interpretability claim would also be stronger if the extra page showed the fitted state locations, scales, stationary weights, and expected durations. At present, the paper calls the states economically readable without displaying or economically interpreting them.
-
-## Presentation corrections
-
-### Dummy publication metadata
-
-The rendered first page contains placeholder values:
-
-- `10.1145/nnnnnnn.nnnnnnn`
-- `978-x-xxxx-xxxx-x/YY/MM`
-
-These should not appear in a review submission. Remove the placeholder DOI/ISBN and review-stage rights metadata, restoring the official values only at camera-ready.
-
-### Figure 1
-
-The two panels are individually only `0.49\columnwidth`, making labels difficult to read. The figure does not visually show the raw-return ACF even though the manuscript claims all three stylized facts.
-
-Possible improvements:
-
-- use a full-width two-column figure;
-- enlarge labels and line weights at source;
-- add a small raw-return ACF inset or explicitly state where that evidence appears.
-
-### Density
-
-Pages 1–6 are text-heavy, especially the abstract, introduction, and results. The abstract is much longer than the original 150–180 word target and contains too many subordinate claims. The conclusion repeats several numerical results already present in the results section.
-
-Shortening the introduction's baseline survey and conclusion repetition would make room for direct evidence without exceeding eight pages.
-
-## Prioritized revision sequence
-
-### Submission blockers
-
-1. Choose and declare a canonical model configuration.
-2. Correct the false HSMM latent-state sentence.
-3. Rename and correctly define the VaR head.
-4. Fix or relabel the approximate “ML HSMM” benchmark.
-5. Rewrite the abstract so its parameter count and claims refer to the same configuration.
-6. Disclose the penalized model used in the cross-ticker/refit panel or rerun that panel with the canonical model.
-
-### High-priority strengthening
-
-7. Add one page of self-contained walk-forward/cross-ticker/state-selection evidence.
-8. Describe the shared-`nu` estimation method.
-9. Correct the spectral-share definition and narrow its generalization.
-10. Label Table 1's ACF window and address missing baseline entries.
-11. Replace the CRPS citation.
-12. Narrow the Hill-estimator interpretation.
-
-### Final polish
-
-13. Remove dummy DOI/ISBN metadata.
-14. Enlarge Figure 1.
-15. Remove the copula companion paragraph.
-16. Show fitted regime parameters or narrow the interpretability language.
-17. Replace “higher-power DQ” with “richer DQ specification.”
-18. Run `make check` and visually inspect the final eight-page PDF.
-
-## Recommended abstract-level claim after correction
-
-A defensible high-level claim would be:
-
-> We evaluate a family of low-state continuous-emission HMM generators under a common filtering framework. On SPY, a spectral decomposition shows that the fitted absolute-return ACF is already dominated by one persistent mode at three states, while changing the emission family materially affects marginal and tail diagnostics. A canonical small-state specification is then evaluated across rolling windows, a 30-ticker panel, and a filter-conditional VaR backtest. The model is competitive on marginal and volatility-clustering diagnostics in stable periods but requires refitting under regime introductions and does not reproduce genuine long-memory or provide a privacy guarantee.
-
-This is less aggressive than the current abstract but is technically coherent and easier for a reviewer to trust.
-
-## Final recommendation
-
-Proceed toward ICAIF '26, but do not submit the current PDF unchanged. The topic is directly aligned with the conference, the paper is mechanically compliant, and the two-channel spectral framing is potentially publishable. The configuration-switching problem, HSMM misstatement, VaR terminology, and approximate-ML benchmark are likely reviewer-visible technical weaknesses and should be resolved first.
-
-After those corrections, the highest-value improvement is not more prose or more experiments. It is a single, self-contained validation panel showing that one named canonical specification supports the paper's generator, generalization, and risk claims.
+> An interpretable probabilistic generator for daily equity scenarios that diagnoses the separate temporal and marginal limits of low-state HMMs and evaluates a filter-conditional risk head under walk-forward and cross-ticker validation.
