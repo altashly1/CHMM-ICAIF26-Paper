@@ -1,0 +1,37 @@
+For ticker $i$ and trading day $j$, with $P_{i,j}$ the session volume-weighted average price (VWAP), $\Delta t = 1/252$ the annualised trading-day step, and $r_f$ the risk-free rate (set to zero here), the annualised excess growth rate is
+\begin{equation}
+    G_{i,j} \equiv \left(\frac{1}{\Delta t}\right) \ln\!\left(\frac{P_{i,j}}{P_{i,j-1}}\right) - r_f.
+    \label{eq:growth_rate}
+\end{equation}
+Since $\Delta t$ is fixed, the growth rate is a constant positive multiple of the day's log return; the excess kurtosis and autocorrelations that define the stylized facts are invariant to the rescaling, so the absolute growth-rate ACF measures the same slow-decay stylized fact the literature reports for absolute returns.
+
+The model is fit one ticker at a time; we write $G_t$ for the daily excess growth rate of the ticker being fit. The sequence $\{G_t\}$ is the observed output of a CHMM with $K$ latent states, $\mathcal{M} = (\mathcal{S}, \mathbf{T}, \mathbf{F}, \boldsymbol{\pi})$~\cite{rabiner1986introduction}: state space $\mathcal{S} = \{1, \ldots, K\}$ with latent state $s_t$, transition matrix $T_{ij} = \Prob(s_{t+1} = j \mid s_t = i)$, initial distribution $\pi_k = \Prob(s_1 = k)$, and per-state emission densities $\mathbf{F} = \{f_k(\,\cdot\,;\boldsymbol\theta_k)\}_{k=1}^K$ with per-state CDFs $F_k$ used in the regime-conditional VaR construction. (``Conditional'' means conditioning on the latent regime: the VaR is a quantile of the one-step-ahead state-mixture predictive and moves as the regime belief updates; it is distinct from CVaR/expected shortfall and from the Christoffersen conditional-coverage backtest criterion.) With $\bar{\boldsymbol\pi}$ the stationary distribution ($\bar{\boldsymbol{\pi}} = \bar{\boldsymbol{\pi}}\mathbf{T}$, unique when $\mathbf{T}$ is irreducible and aperiodic), the marginal mixture pools the per-state densities by long-run state occupancy,
+\begin{equation}
+    f(x) = \sum_{k=1}^{K} \bar{\pi}_k\, f_k(x; \boldsymbol\theta_k), \qquad \bar{\boldsymbol{\pi}} = \bar{\boldsymbol{\pi}} \mathbf{T}.
+    \label{eq:mixture}
+\end{equation}
+Unconditional simulation initialises the chain from $\bar{\boldsymbol\pi}$. The four variants share everything except the emission family: CHMM-N uses Gaussian $f_k = \mathcal{N}(\mu_k, \sigma_k^2)$; CHMM-t uses Student-$t$ $f_k = t_{\nu_k}(\mu_k, \sigma_k)$ with $\nu_k \in [\nu_{\min}, \nu_{\max}]$ (an optional exponential penalty on $1/\nu_k$ is used only in the $\lambda = 20$ sensitivity specification); CHMM-L uses Laplace $f_k = \mathrm{Laplace}(\mu_k, b_k)$; CHMM-GED uses the generalized error distribution $f_k = \mathrm{GED}(\mu_k, \alpha_k, p_k)$, which nests the Gaussian ($p_k = 2$) and Laplace ($p_k = 1$) as interior special cases.
+
+\subsection{Estimation by EM}
+\label{sec:estimation}
+
+We estimate $(\mathbf{T}, \boldsymbol\theta_{1:K}, \boldsymbol\pi)$ by expectation--maximization (EM). The forward--backward recursions, and likewise the one-step-ahead forward filters of the risk head, evaluate emission log-densities and normalise by logsumexp in log-space for numerical stability, with a prior fallback retained in the filters against fully underflowed rows. Writing $O_t \equiv G_t$, the E-step computes smoothed posteriors $\gamma_t(k) = \Prob(s_t = k \mid O_{1:T})$ and pair posteriors $\xi_t(i,j) = \Prob(s_t = i, s_{t+1} = j \mid O_{1:T})$ by one forward and one backward pass. All four families share the recursions and a quantile-based initialization: observations are sorted, split into $K$ equal-sized chunks, and state $k$'s initial location and scale are seeded from chunk $k$, with $T_{ij}^{(0)} = \pi_k^{(0)} = 1/K$; this reduces overlap among starting components and helps convergence to non-degenerate $K \ge 3$ fits. The Gaussian fitter holds $\boldsymbol\pi$ fixed at uniform (and excludes it from parameter counts), while the Student-$t$, Laplace, and GED fitters update $\pi_k \leftarrow \gamma_1(k)$; on a single long training sequence $\boldsymbol\pi$ is weakly identified either way. The loop runs until the observed-data log-likelihood changes by less than $10^{-4}$ or an iteration cap is reached; each iteration costs $\mathcal{O}(K^2 T)$ for the recursions and transition update plus the per-family emission updates.
+
+The families differ only in the M-step for $\boldsymbol\theta_k$. For CHMM-N, the classical Baum--Welch update~\cite{baum1970maximization} is closed form:
+\[
+\mu_k \leftarrow \frac{\sum_t \gamma_t(k)\, O_t}{\sum_t \gamma_t(k)},
+\qquad
+\sigma_k^2 \leftarrow \frac{\sum_t \gamma_t(k)\, (O_t - \mu_k)^2}{\sum_t \gamma_t(k)}.
+\] For CHMM-t, we use the expectation conditional maximisation (ECM) construction of Peel and McLachlan~\cite{peel2000robust} and Liu and Rubin~\cite{liu1995ml}, based on the Gaussian scale-mixture representation $G_t \mid s_t = k, u \sim \mathcal{N}(\mu_k, \sigma_k^2/u)$ with $u \sim \Gamma(\nu_k/2, \nu_k/2)$. The E-step adds the latent-precision expectation
+\begin{equation}
+    u_{t,k} \equiv \E[u \mid O_t, s_t = k] = \frac{\nu_k + 1}{\nu_k + ((O_t - \mu_k)/\sigma_k)^2},
+    \label{eq:tprecision}
+\end{equation}
+and the M-step updates location and scale in closed form given $\nu_k$,
+\begin{equation}
+    \mu_k \leftarrow \frac{\sum_t \gamma_t(k)\, u_{t,k}\, O_t}{\sum_t \gamma_t(k)\, u_{t,k}},
+    \qquad
+    \sigma_k^2 \leftarrow \frac{\sum_t \gamma_t(k)\, u_{t,k}\, (O_t - \mu_k)^2}{\sum_t \gamma_t(k)}.
+    \label{eq:tupdate}
+\end{equation}
+The degrees of freedom $\nu_k$ are then updated by a bracketed one-dimensional search on $[\nu_{\min}, \nu_{\max}]$ over the posterior-weighted marginal objective $Q_k(\nu) = \sum_t \gamma_t(k) \log t_\nu(O_t; \mu_k, \sigma_k)$, adapted from the ECME variant of Liu and Rubin~\cite{liu1995ml}. In the HMM this update is a hybrid generalised block-coordinate step on a surrogate objective rather than an ECME observed-likelihood maximisation, so monotone observed-data ascent is not guaranteed by the ECM theory for the Student-$t$ and GED fitters; we assess numerical convergence from the observed-data log-likelihood trace and restore the last finite-likelihood iterate. For CHMM-L, both updates are closed form: $\mu_k$ is a $\gamma$-weighted median and $b_k$ the weighted mean absolute deviation. For CHMM-GED, the M-step uses three sequential numerical block updates (bounded searches for location and shape, closed-form scale), an ECM-style block-coordinate procedure diagnosed from its likelihood trace.

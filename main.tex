@@ -1,0 +1,106 @@
+\documentclass[sigconf,anonymous]{acmart}
+
+%% ICAIF '26 submission: double-blind, max 8 pages including figures and references.
+%% Camera-ready: remove the `anonymous' option and restore the author block below.
+
+\usepackage{booktabs}
+
+%% --- Project-level numeric macros (carried over from the extended manuscript) ---
+\newcommand{\pct}[1]{\ensuremath{#1\%}}
+\newcommand{\Kdisc}[1]{\ensuremath{K_{\text{disc}} = #1}}
+\newcommand{\LRuc}[1]{\ensuremath{\text{LR}_{\text{uc}} = #1}}
+\newcommand{\TIS}[1]{\ensuremath{T_{\text{IS}} = #1}}
+\newcommand{\TOoS}[1]{\ensuremath{T_{\text{OoS}} = #1}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+
+\citestyle{acmnumeric}
+
+%% --- Conference metadata ---
+\acmConference[ICAIF '26]{7th ACM International Conference on AI in Finance}{November 14--17, 2026}{Milan, Italy}
+\acmBooktitle{7th ACM International Conference on AI in Finance (ICAIF '26), November 14--17, 2026, Milan, Italy}
+\copyrightyear{2026}
+\acmYear{2026}
+\setcopyright{acmlicensed}
+\acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\acmISBN{978-x-xxxx-xxxx-x/YY/MM}
+
+\begin{document}
+
+\title{Heavy-Tail Hidden Markov Generators for Daily Equity Returns: Stylized Facts and Regime-Conditional Value-at-Risk}
+
+%% CAMERA-READY: restore real author block here.
+\author{Anonymous Author(s)}
+\affiliation{%
+  \institution{Anonymous Institution}
+  \city{City}
+  \country{Country}}
+\email{anonymous@example.com}
+
+\renewcommand{\shortauthors}{Anon.}
+
+\begin{abstract}
+Synthetic generators of daily US-equity returns support stress testing, regulatory backtesting, and scenario design, none of which a single realized market history can supply on its own. Deep generative models offer capacity at the cost of interpretability, while low-state-count hidden Markov models (HMMs) with Gaussian emissions were long held unable to reproduce the slow autocorrelation decay of absolute returns. We revisit that negative result with a continuous-emission HMM whose latent regime chain governs the autocorrelation while per-regime densities govern the marginal, separating the temporal and distributional channels of the low-state Gaussian limitation. A unified expectation--maximization framework places Gaussian, Student-$t$, Laplace, and generalized-error emissions under shared forward--backward recursions and quantile-based initialization, and a spectral identity bounds the number of geometric decay modes of the absolute-return autocorrelation by the rank of the centred transition matrix. On SPY and a sector-balanced 30-ticker panel the rank bound is not empirically active at the typical ticker once a few states are used: marginal flexibility, not additional decay modes, explains more of the remaining fit gap. With 12 free parameters at three states, the model reproduces the three symmetric Cont stylized facts, narrows the excess-kurtosis gap left by the Gaussian baseline without a tuning hyperparameter, and supports a regime-conditional Value-at-Risk that is not rejected by joint conditional-coverage tests on held-out data or on most walk-forward folds. An i.i.d.\ bootstrap and a maximum-likelihood hidden semi-Markov benchmark match or exceed the model on raw single-window fit, but carry no latent state for a regime-conditional forecast. The scope is daily US equities in stable out-of-sample periods, with periodic refitting recommended when regimes drift.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10010147.10010257.10010258.10010262</concept_id>
+<concept_desc>Computing methodologies~Latent variable models</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10010405.10010455.10010458</concept_id>
+<concept_desc>Applied computing~Economics</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10002950.10003648.10003688.10003696</concept_id>
+<concept_desc>Mathematics of computing~Time series analysis</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Computing methodologies~Latent variable models}
+\ccsdesc[500]{Applied computing~Economics}
+\ccsdesc[300]{Mathematics of computing~Time series analysis}
+
+\keywords{synthetic data generation, hidden Markov models, heavy-tailed distributions, regime switching, Value-at-Risk, stylized facts}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+\input{sections/01-introduction}
+
+\section{Related Work}
+\label{sec:related}
+\input{sections/02-related}
+
+\section{Model and Estimation}
+\label{sec:model}
+\input{sections/03-model}
+
+\section{Spectral Diagnostic}
+\label{sec:spectral}
+\input{sections/04-spectral}
+
+\section{Experimental Setup}
+\label{sec:setup}
+\input{sections/05-setup}
+
+\section{Results}
+\label{sec:results}
+\input{sections/06-results}
+
+\section{Limitations and Conclusion}
+\label{sec:conclusion}
+\input{sections/07-conclusion}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}
