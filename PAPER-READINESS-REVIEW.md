@@ -1,270 +1,255 @@
-# ICAIF '26 Paper Readiness Review — Second Full Audit
+# Paper Readiness Review — Third Full Audit
 
 **Paper:** *Heavy-Tail Hidden Markov Generators for Daily Equity Returns: Stylized Facts and Filter-Conditional Value-at-Risk*
 
-**Review date:** July 15, 2026
+**Target:** 7th ACM International Conference on AI in Finance (ICAIF '26)
 
-**Scope:** Technical accuracy, narrative flow, correctness, conference fit, source-artifact consistency, and rendered-PDF quality.
+**Audit date:** July 15, 2026
 
-**Compared against:**
+**Paper commit:** `6d6ae62`
 
-- `/Users/abdulrahmanalswaidan/Desktop/Project-Repos/Thesis/CHMM-Paper-Repository`;
-- `/Users/abdulrahmanalswaidan/Desktop/Project-Repos/Thesis/CHMM-Model-Repository`;
-- the official ICAIF '26 call: <https://icaif2026.org/call-for-papers.html>.
+**Model/artifact commit:** `ad8e24c`
 
 ## Executive verdict
 
-The manuscript is a **very strong topical fit for ICAIF '26**, and most issues from the first review have been corrected. It is nevertheless **not ready to submit unchanged**. This audit found a new central inconsistency in the cross-ticker spectral evidence: the manuscript says the panel supports one-mode/non-binding behavior at the median, but the stored artifact's own criterion is not met, and the cross-ticker script computes a different modal-share quantity from the one defined in the paper.
+The manuscript is a **strong topical fit for ICAIF '26**, and the technical corrections from the first two audits are now reflected consistently in the paper, code, and stored artifacts. The spectral panel has been recomputed under the manuscript's declared modulus definition, the conclusion is now SPY-specific rather than panel-wide, the shared-`nu` CRPS value is stored, and the PDF is cleanly rendered at the eight-page limit.
 
-This is a targeted rather than foundational problem. The SPY spectral results remain internally supported. The panel diagnostic should be corrected and rerun, after which the abstract, introduction, results, and Table 3 must be aligned with the revised result.
+The paper is nevertheless **not ready to submit unchanged**. One remaining issue is a submission blocker because it affects the provenance of every 2025–2026 out-of-sample observation:
 
-Additional corrections are needed for an unsupported shared-`nu` CRPS statement, an internally inconsistent Hill paragraph, an undefined ACF “tolerance,” and the rendered placement of Table 3 inside the reference list.
+> The claimed 323-session Polygon/Alpaca overlap check does not compare two vendors. The dataset called “Polygon OoS” by the diagnostic already contains the Alpaca extension, so the diagnostic compares the Alpaca rows with themselves and necessarily reports an exact match.
 
-| Dimension | Assessment |
-|---|---:|
-| Conference fit | 9/10 |
-| Technical accuracy | 7/10 |
-| Narrative and coherence | 7.5/10 |
-| Reproducibility/correctness | 7/10 |
-| Current submission readiness | 6.5/10 |
+The raw files have no overlap: the Polygon file ends on December 31, 2024, and the Alpaca/IEX file begins on January 3, 2025. The manuscript also incorrectly says its daily VWAPs are constructed from typical price and volume; the analyses consume the vendors' stored daily `volume_weighted_average_price` field, which is observably different from `(high + low + close)/3`.
 
-## Conference fit and domain
+### Readiness scores
 
-ICAIF '26 explicitly solicits:
+| Dimension | Score | Assessment |
+|---|---:|---|
+| Technical accuracy | **8.0/10** | Core HMM, spectral, generator, and VaR claims are careful; data-lineage validation must be corrected. |
+| Empirical correctness | **7.5/10** | Headline numbers trace to committed artifacts, but the mixed-feed OoS series has not received a valid cross-vendor check. |
+| Narrative flow | **8.0/10** | Stronger configuration mapping and caveats; abstract/results remain dense and two claims should be tightened. |
+| ICAIF topical fit | **9.5/10** | Direct match to synthetic financial data, model validation, risk modeling, and financial time series. |
+| Submission readiness | **7.5/10** | Formatting passes; one data-provenance blocker plus several small wording corrections remain. |
 
-- **Generative AI, simulation, and synthetic data generation**;
-- **AI-driven risk management**;
-- **validation and calibration of financial models**;
-- **robustness and uncertainty quantification**;
-- **risk modeling and risk management**;
-- **forecasting of financial scenarios**;
-- **financial time-series analysis and factor models**.
+## 1. Submission blocker: the vendor-stitch check is circular
 
-The best primary CMT methodology is:
+### What the manuscript claims
 
-> **Generative AI, simulation, and synthetic data generation**
+Section 5 states that the Polygon and Alpaca vendors have a 323-session overlap that “passes an exact stitch check.” The diagnostic artifact reports zero VWAP and return differences and a KS statistic of zero over those 323 sessions.
 
-Best secondary methodology:
+### What the repository actually does
 
-> **Validation and calibration of financial models**
+`build_new_train_oos.jl` loads and concatenates:
 
-Best application area:
+- `SP500-Daily-OHLC-1-3-2014-to-12-31-2024.jld2`; and
+- `SP500-Daily-OHLC-1-3-2025-to-4-20-2026.jld2`.
 
-> **Risk modeling and risk management**
+A direct read of the SPY tables gives:
 
-Secondary applications are **financial time-series analysis** and **forecasting of financial scenarios**.
+| Raw file | Rows | Actual dates |
+|---|---:|---|
+| Polygon/Massive file | 2,767 | 2014-01-03 to 2024-12-31 |
+| Alpaca extension | 323 | 2025-01-03 to 2026-04-20 |
+| Constructed OoS file | 573 prices | 2024-01-04 to 2026-04-20 |
 
-The technical domain is:
+There are therefore **zero overlapping source dates**.
 
-> **Probabilistic machine learning for finance: latent-variable, regime-switching, and synthetic financial time-series modeling.**
+In `runners/diagnostics/run_vendor_stitch_check.jl`, `polygon_oos` is loaded through `MyOutOfSamplePortfolioDataSet()`. That file is not Polygon-only: it was constructed by the concatenation above and already contains all 323 Alpaca rows. The runner then intersects its 2025–2026 dates with the original Alpaca extension and compares the same stored rows. This explains the otherwise implausible exact equality:
 
-Do not submit it primarily under asset pricing, trading, NLP, or deep learning. The present CCS terms—latent-variable models, economics, and time-series analysis—are appropriate.
+- VWAP relative difference: exactly `0`;
+- return difference: exactly `0`; and
+- two-sample KS: `D = 0`, `p = 1`.
 
-The venue risk is novelty, not scope. The paper should continue to position itself as an empirical/model-validation contribution: the CHMM and spectral identity are established; the contribution is the two-channel diagnosis, controlled emission-family comparison, small inspectable generator, filter-conditional risk head, and validation/failure analysis.
+The runner's stated source spans and November 19, 2025 stitch date do not match the raw data boundary. The actual vendor boundary is between December 31, 2024 and January 3, 2025.
 
-## What the revision fixed successfully
+### Why this matters
 
-The current version materially improves on the earlier draft:
+The held-out series uses Polygon observations through 2024 and Alpaca/IEX observations from 2025 onward. Alpaca's official documentation describes IEX as a single-exchange feed representing roughly 2.5% of market volume, whereas SIP represents all U.S. exchanges. A change from a consolidated aggregate to IEX-only bars can change volume, VWAP, tail measurements, and apparent distribution shift. The issue does not prove that the reported HMM conclusions are wrong, but it means the current artifact provides no evidence that the vendor change is innocuous.
 
-- The abstract now distinguishes the Gaussian, shared-`nu`, and penalized per-state Student-t configurations.
-- Filter-conditional VaR is correctly defined as the quantile of the one-step-ahead predictive mixture.
-- The ACF identity is correctly restricted to positive lags.
-- The parameter range is corrected to 12–17, with the 12- and 15-parameter headline variants identified.
-- The shared-`nu` objective and hybrid generalized block-update caveat are disclosed.
-- The HSMM duration update is correctly labeled moment-updated rather than maximum-likelihood.
-- The cross-ticker panel identifies the penalized model and reports its poor kurtosis behavior.
-- The CRPS wording was softened from statistical equivalence to numerical similarity.
-- The Hill discussion now disclaims asymptotic/far-tail inference.
-- The conclusion distinguishes state selection by BIC/CV from spectral diagnosis.
-- ACM reference format and figure alternative text were restored.
-- `make check` passes with no unused or undefined citations and a clean anonymization scan.
+### Required action
 
-The main SPY, model-comparison, state-selection, walk-forward, refit, and VaR numbers checked against the stored artifacts.
+Before submission, do one of the following, in order of evidential strength:
 
-## Critical technical findings
+1. **Preferred:** rebuild all IS and OoS observations from one consistent feed and rerun every OoS-dependent table and statement.
+2. Obtain a genuine common-date Polygon-versus-Alpaca overlap, compare VWAP and returns, and rerun the key OoS metrics under each source over the overlap and post-boundary window.
+3. If a consistent or overlapping source cannot be obtained before the deadline, remove the false overlap claim, disclose the exact source boundary, and label feed change as an unresolved OoS confound. This is weaker and should be paired with a close-return or same-vendor sensitivity analysis where possible.
 
-### 1. The cross-ticker spectral conclusion does not satisfy its own criterion
+Any changed values must be propagated through the abstract, Table 1, Table 2, Table 3, the panel/refit discussion, and conclusion.
 
-The abstract says that the 30-ticker diagnostic supports the SPY reading at the cross-ticker median. The introduction and results similarly state that the rank bound is non-binding at the panel median.
+## 2. Required correction: VWAP provenance is described incorrectly
 
-The stored artifact `results/diagnostics/spectral_rank_cross_ticker.txt` reports:
+Section 5 says:
 
-- median dominant-mode share: `0.756`;
-- median number of modes needed for 95%: `6`;
-- minimum dominant share: `0.326`;
-- maximum modes needed for 95%: `11`.
+> Prices are session-cumulative VWAPs built from the typical price `(high + low + close)/3` and volume.
 
-The same artifact states its decision rule:
+The experiment runners instead read the existing `volume_weighted_average_price` column from each vendor table. Direct inspection confirms that this field is not the typical price. For SPY, the mean absolute difference between stored VWAP and typical price is about `0.250` in the Polygon file and `0.432` in the Alpaca file; individual differences reach several dollars.
 
-> If median dominant share is at least 0.90, the rank-non-binding claim is supported across the panel.
+`src/Compute.jl` contains a `vwap(df)` helper based on cumulative typical-price × volume, but repository search finds no experiment runner calling it. On a daily-bar DataFrame that helper would also accumulate across sessions rather than reconstruct an intraday session VWAP.
 
-The observed median `0.756` fails that criterion. It therefore does **not** support a panel-wide one-mode conclusion under the predeclared rule.
+**Required wording:** identify `P_{i,j}` as the **vendor-provided daily aggregate VWAP field**, name the source and feed for each date range, and remove the typical-price construction claim. If the intended data are in fact locally constructed VWAPs, the dataset must be rebuilt and all results rerun using a documented intraday aggregation.
 
-A defensible interpretation is:
+## 3. Important claim and narrative corrections
 
-> SPY is unusually close to one-mode. Across the panel, effective rank remains below the 17-mode algebraic maximum at `K = 18`, but the typical ticker requires about six modes to reach 95% of absolute lag-1 contribution.
+### Refit is an improvement, not a demonstrated remedy for regime drift
 
-That is still an interesting result, but it is different from “the panel supports the SPY reading.”
+The abstract recommends periodic refitting “when regimes drift,” while the limitations section says that no tested refit cadence repaired the COVID or 2022 rate-hike stress folds. The positive evidence is narrower: quarterly refitting improved median cross-ticker marginal KS from `69.1%` to `84.7%` and reduced sub-60% failures from `11/30` to `8/30`.
 
-Required edits after rerun:
+Use the narrower conclusion throughout:
 
-- narrow the abstract's panel sentence;
-- revise Introduction paragraph 3;
-- revise Results 6.1;
-- report median `n95 = 6` in Table 3, not only the dominant share;
-- avoid inferring that marginal flexibility dominates additional ACF modes across tickers unless a state-count/ACF comparison is actually run on the panel.
+> Quarterly refitting improves marginal fidelity on the non-stress cross-ticker panel, but it does not solve abrupt stress-regime shifts in the tested walk-forward folds.
 
-### 2. The cross-ticker code and manuscript use different modal-share definitions
+Similarly, replace “quarterly refit did recover the non-stress cross-ticker panel” in the conclusion with “improved the non-stress cross-ticker panel.”
 
-The manuscript defines the lag-1 share from complex modal magnitudes:
+### CRPS does not make family choice depend on kurtosis alone
 
-`|a_k lambda_k| / sum_j |a_j lambda_j|`.
+Section 6.2 says the similar CRPS values mean “the family choice is driven by the per-row kurtosis match.” That is inconsistent with the selected shared-`nu` row: CHMM-L and CHMM-GED have closer OoS kurtosis to the observed `5.29`, while shared-`nu` has the best CHMM OoS KS and avoids a penalty hyperparameter.
 
-The SPY script implements this with `abs(r.w_k * r.lambda)`. The cross-ticker script instead computes:
+Suggested correction:
 
-`abs(real(r.w_k * r.lambda))`.
+> CRPS does not distinguish the four CHMM rows at the reported precision; the preferred shared-`nu` row is selected on the joint KS–kurtosis–regularization trade-off, not kurtosis alone.
 
-These differ for complex eigenvalues. The fitted `K = 18` chains do contain complex-conjugate modes, as indicated by repeated eigenvalue magnitudes in the SPY artifact. The mismatch already produces two values for the same SPY control:
+### Clarify “mode” for complex eigenvalues
 
-- `0.936` under the main SPY modulus definition;
-- `0.943` in the cross-ticker artifact.
+The spectral definition is now internally consistent: both scripts and paper use `|a_k lambda_k|`. However, the code counts each member of a complex-conjugate eigenvalue pair separately, while the theory text correctly notes that a pair combines into one real damped-oscillatory component. Therefore `n95 = 7` means seven **eigen-contributions**, not necessarily seven distinct real decay/oscillation modes.
 
-Consequently, the panel median `0.756` is not computed under the definition printed in Section 4 and Table 3.
+Either group conjugate pairs before computing `n95`, or rename the reported quantity to “number of non-unit eigen-contributions needed for 95%.” The dominant-share convention itself is acceptable because it is explicitly defined.
 
-**Required action:** Change the cross-ticker implementation to the manuscript's declared definition, or redefine the paper consistently. Preferably group complex-conjugate pairs into real damped-oscillatory modes and state that convention explicitly. Rerun the 30-ticker diagnostic and regenerate every affected number.
+### Parameter budgets use different initial-distribution treatments
 
-### 3. The shared-`nu` CRPS claim is not present in the stored artifact
+The 12-parameter Gaussian fitter holds the initial state vector uniform, while the 15-parameter shared-`nu` fitter updates its `K - 1` free initial probabilities. The paper discloses this in Section 3, and unconditional simulations start from each fitted transition matrix's stationary law, so this is not a hidden numerical error. Still, the “12 versus 15” compactness comparison is not an emission-only comparison.
 
-Results 6.2 says the four displayed CHMM variants have numerically similar OoS CRPS values. The quoted range comes from the older `K = 3` headline artifact containing the penalized per-state Student-t row. The new shared-`nu` runner and stored CSV report KS, kurtosis, and ACF metrics, but not CRPS.
+For maximum clarity, either standardize the initial-distribution treatment or add one short phrase where the budgets are advertised: “under their implemented initial-state conventions.”
 
-The full Table-2 artifact includes shared-`nu` Wasserstein/Hellinger results, not CRPS. Thus the sentence currently treats the new shared-`nu` row as if its CRPS had been computed when the checked artifacts do not show that result.
+## 4. Corrections from the second audit that are now resolved
 
-**Required action:** Compute CRPS for the saved shared-`nu` simulations using the same scoring implementation and seed policy, or rewrite the statement to cover only configurations with stored CRPS values. Do not use the penalized Student-t CRPS as the shared-`nu` value.
+The following items now pass:
 
-### 4. The ACF “tolerance” is undefined
+- **Cross-ticker spectral implementation:** the runner now uses `abs(a_k * lambda_k)`, matching Section 4.
+- **Cross-ticker interpretation:** the paper reports median dominant share `0.726`, minimum `0.287`, and median `n95 = 7`, and explicitly rejects a panel-wide near-one-mode reading.
+- **SPY control:** the cross-ticker run reproduces the SPY `K = 18` share of `0.936`.
+- **Shared-`nu` CRPS:** a committed artifact reports OoS CRPS `1.0406` under the same sample-CRPS implementation.
+- **Hill paragraph:** family-specific tail and kurtosis values are no longer mixed.
+- **ACF wording:** the undefined “tolerance” language has been removed.
+- **Configuration attribution:** Table 2 clearly maps Gaussian VaR, shared-`nu` SPY generation, and penalized per-state Student-t panel claims.
+- **Layout:** the validation table now appears before the VaR table, conclusion, and references; it no longer interrupts the bibliography.
+- **Metadata:** placeholder DOI/ISBN text is absent.
 
-Results 6.2 and the conclusion say the CHMM matches the slow ACF “within our lag-252 MAE tolerance,” but no tolerance or acceptance threshold is defined in Experimental Setup.
+## 5. Technical assessment
 
-This matters because the paper's central historical claim turns on whether the ACF is adequately reproduced. Table 1 shows:
+### Strong points
 
-- CHMM-N: `0.0462`;
-- GARCH-t: `0.0316`;
-- MS-GARCH: `0.0284`;
-- i.i.d. bootstrap: `0.0628`.
+- The paper correctly states that the CHMM is established and frames the contribution as comparative estimation, a spectral diagnostic, and a filter-conditional risk head.
+- The spectral identity is stated with its stationarity, finite-moment, and diagonalizability conditions.
+- The paper distinguishes the algebraic `K - 1` upper bound from empirical effective contribution.
+- The SPY-only conclusion is supported by the stored `K = 2`, `K = 3`, and `K = 18` artifacts.
+- Non-diagonalizable and complex-eigenvalue cases are acknowledged instead of being silently ignored.
+- The Student-t and GED update routines are accurately described as generalized/hybrid block-coordinate procedures without claiming guaranteed ECME monotonicity.
+- The HSMM duration update is correctly labeled moment-approximate rather than maximum-likelihood.
+- VaR is correctly defined as the quantile of the one-step-ahead filtered predictive mixture, distinct from a state-specific VaR or expected shortfall.
+- Backtest non-rejection is interpreted as compatibility, not proof, and the low power of the 1% tail tests is disclosed.
+- The paper is unusually candid about benchmark wins, stress-fold failures, the reduced QuantGAN implementation, lack of privacy guarantees, and the penalized Student-t kurtosis artifact.
 
-The CHMM improves on the i.i.d. floor but is not the closest model in the panel. A post hoc “tolerance” cannot carry the claim unless it is specified and motivated.
+### Residual methodological risks, appropriately disclosed
 
-Use one of these alternatives:
+- The primary KS pass rate is descriptive because serial dependence invalidates the ordinary i.i.d. calibration; Wasserstein-1 and other distances partly mitigate this.
+- The model family changes across headline tasks. The configuration map makes this readable, but reviewers may still prefer one prespecified primary configuration.
+- The recommended shared-`nu` default is supported most directly on SPY, not on the cross-ticker panel, which uses the penalized per-state model.
+- The QuantGAN row is a reduced in-house negative control, not a faithful reproduction of the published architecture.
+- The paper does not model leverage effects, far-tail asymptotics, multivariate dependence, or explicit-duration risk forecasts.
 
-1. define a pre-specified or scientifically motivated tolerance;
-2. state the relative result directly: “CHMM-N reduces ACF-MAE from 0.0628 for the i.i.d. bootstrap to 0.0462”;
-3. say “captures substantial slow-decay persistence” instead of “matches.”
+## 6. Narrative flow and correctness
 
-The relative statement is the safest.
+### What now works
 
-### 5. The Hill paragraph mixes headline and sensitivity rows
+- The title accurately signals the model, data frequency, stylized-fact objective, and risk application.
+- The introduction cleanly separates temporal and marginal channels and avoids claiming a new HMM class.
+- The revised SPY-versus-panel spectral narrative is coherent across abstract, introduction, results, and conclusion.
+- The configuration map substantially reduces the earlier risk of readers attributing all findings to one fitted model.
+- Limitations are concrete and tied to reported evidence rather than generic boilerplate.
 
-Results 6.3 says every emission family produces an in-band Hill estimate and that simulated excess kurtosis spans `3.83` to `18.87` “across the same rows.” That is internally inconsistent:
+### What should still be improved
 
-- the four displayed headline rows span `3.83` to `5.45` IS kurtosis;
-- `18.87` belongs to the penalized per-state Student-t sensitivity configuration, not the shared-`nu` headline row.
+- **Abstract density:** it contains too many percentages, configurations, and qualifications for one paragraph. Retain the central SPY spectral result, the panel qualification, the preferred generator result, and VaR result; move secondary benchmark details to the body.
+- **Figure placement:** Figure 1 is first cited on page 4 but rendered at the top of page 6. Moving it closer to Section 6.1 would make the two-channel argument easier to follow.
+- **Results density:** several paragraphs perform result, caveat, comparison, and interpretation simultaneously. Shorter topic sentences would make the main claims easier to audit.
+- **Table 1 caption:** the caption is accurate but very long. Some benchmark qualifications can move to the surrounding prose now that page 8 has substantial unused space.
 
-The paragraph also concludes that the regime mixture “rather than the emission family carries the heavy tail.” The evidence more directly shows that the top-5% Hill diagnostic is not discriminative among these configurations at this sample size.
+These are narrative improvements, not acceptance blockers.
 
-Recommended wording:
+## 7. ICAIF '26 fit and recommended domain
 
-> The four headline families yield similar threshold-local Hill estimates despite different kurtosis values (`3.83–5.45`); the penalized sensitivity row reaches `18.87`. At this threshold and sample size, the Hill statistic does not discriminate reliably among emission families.
+### Fit: very strong
 
-### 6. Quarterly refitting improves KS, not every generator axis
+The official [ICAIF '26 call for papers](https://icaif2026.org/call-for-papers.html) explicitly includes:
 
-The abstract says the penalized Student-t panel variant “improves materially under quarterly refitting.” The displayed evidence establishes an improvement in median marginal KS and failure count. It does not show corresponding refit changes in kurtosis or ACF-MAE.
+- generative AI, simulation, and synthetic data generation;
+- AI-driven risk management;
+- robustness and uncertainty quantification;
+- validation and calibration of financial models;
+- risk modeling and risk management;
+- forecasting of financial scenarios; and
+- financial time-series analysis and factor models.
 
-Use:
+This paper directly addresses synthetic financial time-series generation, regime-based simulation, model validation, and conditional VaR. Its classical statistical-learning orientation is within scope, though the submission should emphasize the interpretable generative-model and validation contributions so reviewers do not read it as only a traditional regime-switching econometrics paper.
 
-> quarterly refitting raises median OoS KS from 69.1% to 84.7%
+### Recommended submission domain
 
-rather than an unqualified model-wide improvement.
+**Primary domain:** **Methodologies → Generative AI, simulation, and synthetic data generation**
 
-### 7. Data reproducibility needs a clearer statement
+**Secondary methodology tags:**
 
-The paper identifies “commercial daily-price vendors” but not the vendor, retrieval rules, VWAP definition, corporate-action source, or duplicate/missing-session handling. It also uses split-adjusted but not dividend-adjusted SPY prices; ex-dividend price changes can mechanically affect return tails and regime assignment.
+1. Validation and calibration of financial models
+2. AI-driven risk management
+3. Robustness and uncertainty quantification
 
-This is disclosed, so it is not hidden, but it weakens the claim that released runners regenerate every table. At minimum:
+**Application tags:**
 
-- name the vendor and field definition;
-- state timezone/session and missing-value rules;
-- explain why price returns rather than total returns are appropriate;
-- if licensing allows, release the derived return series or immutable data hashes.
+1. Risk modeling and risk management
+2. Financial time-series analysis and factor models
+3. Forecasting of financial scenarios
 
-## Narrative and presentation
+The CFP lists topic areas rather than promising a formal track taxonomy, so these should be treated as recommended CMT subject areas/keywords if corresponding choices appear in the submission form.
 
-### Narrative strengths
+### Acceptance-positioning risk
 
-The central story is now coherent:
+Topical fit is stronger than novelty positioning. Because the CHMM itself is not new, the paper should foreground three contributions consistently:
 
-1. split the low-state HMM limitation into temporal and marginal channels;
-2. diagnose the SPY temporal channel spectrally;
-3. compare emission families at a fixed state count;
-4. disclose cross-window and cross-ticker failure modes;
-5. evaluate the Gaussian member's filter-conditional VaR head.
+1. the finite-mode spectral diagnostic and its SPY-versus-panel empirical interpretation;
+2. the controlled heavy-tailed emission comparison under a common fitting/evaluation harness; and
+3. the filter-conditional VaR head with rolling-origin validation and explicit failure analysis.
 
-The configuration map is conceptually valuable, and the paper is commendably candid about configuration switching, the approximate HSMM update, KS calibration, 1% VaR power, stress-fold failures, and lack of privacy guarantees.
+## 8. Formal submission compliance
 
-The abstract is about 243 words—reasonable for a conference paper, though still syntactically dense. The second sentence and configuration-list sentence would benefit from splitting.
+The official CFP currently gives an **August 2, 2026 Anywhere-on-Earth deadline** and requires a self-contained, double-blind ACM `sigconf` paper of at most eight total pages, with no supplementary appendix.
 
-### Table 3 interrupts the bibliography
+Current checks:
 
-The rendered PDF places Table 3 at the top of page 8 after references 1–24 have begun on page 7; references 25–30 then continue below the table. This visually inserts a results table into the middle of the bibliography and makes the evidence appear after the conclusion.
+- PDF pages: **8 / 8**
+- ACM `sigconf,anonymous`: **pass**
+- Source/PDF/metadata anonymization scan: **pass**
+- Citations: **30 used, 30 defined, 0 unused, 0 undefined**
+- Visual rendering: **pass**; no clipped tables, figures, or references
+- Table/reference order: **pass**
+- Placeholder DOI/ISBN: **absent**
+- Overfull boxes: three small horizontal boxes (maximum `4.37 pt`) and one `1.13 pt` vertical box; no visible clipping, but worth cleaning if the text is edited
 
-This is a submission-quality problem even though nothing overlaps or clips.
+## 9. Priority checklist before submission
 
-Move the `table*` earlier in the source or force it to the top of page 7 before the conclusion/references. A compact one-column configuration table or a reduced conclusion may give LaTeX enough room. Re-render all pages after changing float placement.
+### Must fix
 
-### Placeholder DOI
+1. Correct the circular vendor-stitch diagnostic and the false 323-session overlap claim.
+2. Correct the vendor date ranges and actual source boundary.
+3. Correct the VWAP provenance/construction description.
+4. Run a consistent-feed or genuine cross-vendor sensitivity analysis and propagate any changed OoS results.
+5. Rebuild, rerender all eight pages, and rerun `make check`.
 
-The ACM reference block visibly prints `10.1145/nnnnnnn.nnnnnnn`. Do not submit a fake DOI unless ICAIF explicitly directs authors to retain the template placeholder. Keep the reference block but suppress/empty the DOI field, or follow a chair-provided submission template.
+### Should fix
 
-### Figure alternative text
-
-The new `Description` says the absolute-return ACF remains above the 99% band for well over 100 lags. The plotted curve crosses and revisits the band; it is not continuously above it for that duration. Use “shows positive persistence across many lags” or describe the crossings more literally.
-
-## Mechanical audit
-
-Fresh build results:
-
-- exactly 8 pages, including references;
-- latest local `acmart`, `sigconf`, and `anonymous` options;
-- no undefined citations or references;
-- no unused bibliography entries;
-- anonymization scan clean;
-- three small overfull boxes, maximum `4.37 pt`;
-- no clipping, overlap, missing glyphs, or unreadable plots;
-- Figure 1 and Tables 1–2 are legible at page scale.
-
-The official ICAIF '26 limit is eight pages total, in anonymous ACM `sigconf`, with no supplement. The manuscript currently satisfies those mechanical requirements, but the float placement and placeholder DOI should still be corrected.
-
-## Prioritized revision sequence
-
-### Submission blockers
-
-1. Correct the cross-ticker spectral implementation and rerun the panel diagnostic.
-2. Rewrite the panel spectral conclusion using the corrected dominant share and `n95` distribution.
-3. Compute shared-`nu` CRPS or remove the four-variant CRPS statement.
-4. Replace/define the ACF “tolerance.”
-5. Fix the Hill-row inconsistency.
-6. Move Table 3 ahead of the conclusion/references.
-7. Remove the visible placeholder DOI.
-
-### High-value polish
-
-8. Qualify quarterly-refit improvement as an improvement in KS.
-9. Improve data-source reproducibility and justify non-dividend-adjusted returns.
-10. Shorten the densest abstract/introduction sentences.
-11. Correct the Figure 1 alternative text.
-12. Rebuild, run `make check`, and inspect all eight pages.
+6. Narrow the refit conclusion to the evidence actually shown.
+7. Replace the “family choice is driven by kurtosis” sentence with the joint trade-off interpretation.
+8. Clarify whether `n95` counts eigen-contributions or conjugate-pair real modes.
+9. Qualify the 12-versus-15 parameter comparison by its different initial-state conventions.
+10. Reduce abstract and Table 1 caption density.
 
 ## Bottom line
 
-**Keep ICAIF '26 as the target.** The paper belongs there and has a credible application-oriented contribution. The current SPY evidence, configuration disclosures, and VaR definition are substantially improved. The main remaining risk is the panel spectral generalization: under the stored criterion it is not supported, and under the manuscript's stated definition it has not yet been computed consistently.
-
-After that rerun and the targeted textual/layout fixes above, the paper should be in credible submission condition.
+This is now a technically serious, candid, and well-targeted ICAIF paper. The earlier spectral, configuration, CRPS, and layout blockers are resolved. The remaining obstacle is localized but important: **the manuscript currently makes a false cross-vendor validation claim, and the mixed Polygon/IEX OoS feed has not been validly checked**. Fix that provenance issue and rerun the affected sensitivity analysis; after those changes, the paper should be close to submission-ready.
