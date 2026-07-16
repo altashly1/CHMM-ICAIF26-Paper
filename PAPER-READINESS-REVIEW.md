@@ -1,4 +1,4 @@
-# Paper Readiness Review — Eighth Full Audit
+# Paper Readiness Review — Ninth Regression Audit
 
 **Paper:** *Heavy-Tail Hidden Markov Generators for Daily Equity Returns: Stylized Facts and Filter-Conditional Value-at-Risk*
 
@@ -12,7 +12,7 @@
 
 ## Executive verdict
 
-The manuscript is **submission-ready**. I found no remaining blocking technical, narrative, correctness, anonymization, or layout defect.
+The manuscript remains **submission-ready**. This ninth audit rebuilt the unchanged manuscript from a clean paper repository, re-ran every automated check, re-rendered and inspected all eight pages, rechecked the paper against the committed model artifacts, and revalidated the live ICAIF '26 call. I found no remaining blocking technical, narrative, correctness, anonymization, or layout defect.
 
 The final Figure 1 terminology issue is resolved: the rendered axis now reads “Annualised Log Growth Rate,” the model section clearly explains that `r_f = 0`, the figure-generation code uses the same terminology, and the paper's embedded figure is byte-for-byte identical to the committed model-repository artifact. The Section 3 opening was also split into clearer sentences.
 
@@ -63,7 +63,7 @@ The central reviewer-facing limitation remains the non-overlapping Polygon-to-Al
 
 ## 2. Empirical credibility and reproducibility
 
-The paper and model repositories were clean at the start of this audit. The figure assets embedded in the paper match the model-repository outputs by SHA-256. The replacement feed-boundary diagnostic, corrected spectral-share implementation, shared-`nu` CRPS evidence, eigenvector-conditioning output, and dedicated Figure 1 runner are committed.
+The paper and model repositories were clean at the start of this audit. The paper repository was synchronized with `origin/main`; the model repository was one commit ahead because the corrected Figure 1 generator and artifacts are committed locally but not yet pushed. The figure assets embedded in the paper match the model-repository outputs by SHA-256. The replacement feed-boundary diagnostic, corrected spectral-share implementation, shared-`nu` CRPS evidence, eigenvector-conditioning output, and dedicated Figure 1 runner are committed.
 
 The principal reviewer risk is still feed consistency. Polygon consolidated VWAP aggregates are used through December 2024, while Alpaca/IEX bars are used afterward. Because the feeds do not overlap and the switch is confounded with time, later changes cannot be attributed uniquely to the market or data source.
 
@@ -141,7 +141,7 @@ Topical fit is stronger than algorithmic novelty because CHMM itself is establis
 
 ## 5. Formal submission compliance
 
-The official CFP lists an **August 2, 2026, Anywhere-on-Earth deadline** and requires a self-contained, anonymous ACM `sigconf` paper of no more than eight total pages, including references, with no supplementary appendix.
+The live official CFP, rechecked on July 15, 2026, lists an **August 2, 2026, Anywhere-on-Earth deadline** and requires a self-contained, anonymous ACM `sigconf` paper of no more than eight total pages, including references, with no supplementary appendix.
 
 Fresh build and inspection results:
 
@@ -171,8 +171,8 @@ No blocking manuscript change remains.
 
 ### Repository/operational handoff
 
-2. Commit this eighth-audit report if it should remain part of the paper repository.
-3. Push paper commit `39394c4` and model commit `e34fafa`; both local branches were one commit ahead of `origin/main` during this audit.
+2. Commit this ninth-audit report if it should remain part of the paper repository.
+3. Push model commit `e34fafa`; the paper manuscript and prior audit were already synchronized with `origin/main` at the start of this audit.
 4. Upload the freshly built `main.pdf` to CMT and re-open the uploaded file for a final page-count and rendering check.
 
 ## Bottom line
