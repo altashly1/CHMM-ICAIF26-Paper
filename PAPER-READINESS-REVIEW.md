@@ -6,9 +6,11 @@
 
 ---
 
+> **Status update (same day):** F1, F2, and F3 below have been applied to the sources (`sections/06-results.tex`, plus an in-sample scoping clause in `sections/07-conclusion.tex`), the paper recompiled, and all submission gates re-run: 8 pages, 0 undefined references, anonymization clean, no new overfull boxes. **The paper is now fit for submission.**
+
 ## Executive verdict
 
-**Fit for submission after three small corrections — not strictly "as is."**
+**Fit for submission after three small corrections — not strictly "as is."** *(Corrections since applied; see status note above.)*
 
 The paper is in outstanding shape after seven audit rounds: **every table cell in all three tables verifies exactly against its stored artifact**, all 17 methodology descriptions match the implementation line-for-line, the format/anonymity/bibliography checks are fully clean, and the narrative is coherent and honestly scoped. However, this audit found **one claim-level statement that the stored artifacts contradict** (finding F1), plus one wrong numeric interval (F2) and one configuration misattribution (F3). All three are one-sentence fixes with no layout risk, but F1 in particular would be caught by any referee or reproducer with the released code, and it currently overstates the model in the paper's favor. Fix F1–F3 and the paper is ready.
 
@@ -76,7 +78,7 @@ The paper's caveat that monotone ascent is *not* guaranteed for the t/GED fitter
 
 ## 4. Format, anonymity, bibliography — all clean
 
-- Exactly 8 pages including references; final page balanced (`pbalance`); no overfull/underfull warnings; no undefined or multiply-defined references in `main.log`.
+- Exactly 8 pages including references; final page balanced (`pbalance`); no undefined or multiply-defined references in `main.log`. Two sub-5pt overfull boxes (4.4pt and 2.2pt, in the model/setup sections) pre-date this round and are invisible in print; the Makefile `boxes` gate is informational and does not fail on them.
 - All 30 cited keys resolve; zero uncited bib entries; key claims' citations (Rydén et al. 1998, Bulla & Bulla 2006, Cont 2001, Liu & Rubin 1995, Peel & McLachlan 2000) are used accurately, including the Rydén winsorisation point.
 - Anonymization: no author-identifying strings in the sources; PDF metadata carries only the acmart producer string and "Anonymous Author(s)". CCS concepts, keywords, ACM reference block present; conference metadata (Milan, Nov 14–17 2026) correct.
 - Figure 1 renders correctly with an accurate caption and `\Description` (accessibility requirement met).
